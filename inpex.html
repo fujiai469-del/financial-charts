@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INPEX 財務推移</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+        .container {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(25, 118, 210, 0.15);
+            padding: 32px;
+        }
+        h1 {
+            font-size: 22px;
+            margin: 0 0 8px;
+            color: #1565c0;
+            font-weight: 600;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #546e7a;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 28px;
+            padding: 10px;
+            background: linear-gradient(to bottom, #f5f9ff 0%, #ffffff 100%);
+            border-radius: 12px;
+        }
+        .data-table {
+            margin-top: 16px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 14px;
+            text-align: right;
+            border-bottom: 1px solid #e3f2fd;
+        }
+        th {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: #ffffff;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        td:first-child, th:first-child {
+            text-align: left;
+        }
+        tbody tr:hover {
+            background-color: #e3f2fd;
+            transition: background-color 0.2s ease;
+        }
+        tbody tr:last-child {
+            background-color: #e8f4f8;
+            font-weight: 600;
+        }
+        .note {
+            font-size: 12px;
+            color: #607d8b;
+            margin-top: 16px;
+            line-height: 1.6;
+            padding: 12px;
+            background: #f5f9ff;
+            border-left: 3px solid #1976d2;
+            border-radius: 4px;
+        }
+        @media (max-width: 600px) {
+            .chart-wrapper {
+                height: 300px;
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>INPEX：売上高・営業利益・営業利益率の推移</h1>
+        <div class="subtitle">
+            単位：売上高・営業利益＝億円（概算）、営業利益率＝％ / 2021〜2024年は実績、2025年は会社予想
+        </div>
+
+        <div class="chart-wrapper">
+            <canvas id="financialChart"></canvas>
+        </div>
+
+        <div class="data-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>年度</th>
+                        <th>売上高（億円）</th>
+                        <th>営業利益（億円）</th>
+                        <th>営業利益率（％）</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="note">
+            ※2025/12は最新の会社開示ベースの予想値（概算）です。<br />
+            ※数値は四捨五入しているため、実際の開示数値とわずかに異なる場合があります。
+        </div>
+    </div>
+
+    <script>
+        // データ（単位：億円）
+        const years = ['2021/12', '2022/12', '2023/12', '2024/12', '2025/12(予)'];
+        const sales =    [12443, 23246, 21657, 22658, 20000]; // 売上高（億円）
+        const opProfit = [ 5906, 12464, 11218, 12717, 11200]; // 営業利益（億円）
+        const opMargin = sales.map((s, i) => ((opProfit[i] / s) * 100).toFixed(1));
+
+        // テーブルにデータを反映
+        const tableBody = document.getElementById('dataTableBody');
+        years.forEach((year, i) => {
+            const row = tableBody.insertRow();
+            row.innerHTML = `
+                <td>${year}</td>
+                <td>${sales[i].toLocaleString()}</td>
+                <td>${opProfit[i].toLocaleString()}</td>
+                <td>${opMargin[i]}%</td>
+            `;
+        });
+
+        // グラフ描画
+        const ctx = document.getElementById('financialChart').getContext('2d');
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: years,
+                datasets: [
+                    {
+                        label: '売上高（億円）',
+                        data: sales,
+                        backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                        borderColor: 'rgba(33, 150, 243, 1)',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        type: 'bar',
+                        order: 2
+                    },
+                    {
+                        label: '営業利益（億円）',
+                        data: opProfit,
+                        backgroundColor: 'rgba(100, 181, 246, 0.7)',
+                        borderColor: 'rgba(100, 181, 246, 1)',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        type: 'bar',
+                        order: 2
+                    },
+                    {
+                        label: '営業利益率（％）',
+                        data: opMargin,
+                        borderColor: 'rgba(13, 71, 161, 1)',
+                        backgroundColor: 'rgba(13, 71, 161, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: 'rgba(13, 71, 161, 1)',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        yAxisID: 'y1',
+                        type: 'line',
+                        fill: true,
+                        tension: 0.3,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 13,
+                                weight: '500'
+                            },
+                            usePointStyle: true,
+                            padding: 15,
+                            color: '#1565c0'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(21, 101, 192, 0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        padding: 12,
+                        cornerRadius: 8,
+                        titleFont: {
+                            size: 14,
+                            weight: '600'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                if (context.dataset.yAxisID === 'y1') {
+                                    return `${label}: ${context.parsed.y}%`;
+                                } else {
+                                    return `${label}: ${context.parsed.y.toLocaleString()} 億円`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        position: 'left',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '売上高・営業利益（億円）',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#1565c0'
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            },
+                            color: '#546e7a'
+                        },
+                        grid: {
+                            color: 'rgba(33, 150, 243, 0.1)'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '営業利益率（％）',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#1565c0'
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            },
+                            color: '#546e7a'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 12
+                            },
+                            color: '#546e7a'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
