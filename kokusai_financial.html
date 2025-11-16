@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>KOKUSAI ELECTRIC 財務推移</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .chart-wrapper {
+      position: relative;
+      height: 420px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e0e0e0;
+      text-align: right;
+    }
+    th:first-child, td:first-child {
+      text-align: left;
+    }
+    th {
+      background: #1976d2;
+      color: #fff;
+    }
+    .note {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #666;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>KOKUSAI ELECTRIC：売上高・営業利益・営業利益率の推移（概算）</h1>
+    <div class="chart-wrapper">
+      <canvas id="financialChart"></canvas>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>決算期</th>
+          <th>売上高（億円）</th>
+          <th>営業利益（億円）</th>
+          <th>営業利益率（％）</th>
+        </tr>
+      </thead>
+      <tbody id="dataTableBody"></tbody>
+    </table>
+    <div class="note">※2026/3は会社予想値・いずれも公開情報を基にした概算値</div>
+  </div>
+
+  <script>
+    // データ（概算）
+    const years = ['2022/3', '2023/3', '2024/3', '2025/3', '2026/3(予)'];
+    const sales = [2454.25, 2457.21, 1808.38, 2389.33, 2440.0];   // 売上高（億円）
+    const opProfit = [706.52, 560.64, 307.45, 513.20, 492.0];    // 営業利益（億円）
+
+    // 営業利益率（％）を計算（数値のまま保持）
+    const opMargin = sales.map((s, i) => opProfit[i] / s * 100);
+
+    // 数値フォーマッタ（3桁カンマ & 小数1桁）
+    const formatNumber = (v) =>
+      v.toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+    // テーブル生成
+    const tbody = document.getElementById('dataTableBody');
+    years.forEach((y, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${y}</td>
+        <td>${formatNumber(sales[i])}</td>
+        <td>${formatNumber(opProfit[i])}</td>
+        <td>${opMargin[i].toFixed(1)}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // グラフ描画
+    const ctx = document.getElementById('financialChart').getContext('2d');
+
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: years,
+        datasets: [
+          {
+            type: 'bar',
+            label: '売上高（億円）',
+            data: sales,
+            yAxisID: 'y',
+            backgroundColor: 'rgba(25, 118, 210, 0.4)',
+            borderColor: 'rgba(25, 118, 210, 1)',
+            borderWidth: 1,
+          },
+          {
+            type: 'line',
+            label: '営業利益（億円）',
+            data: opProfit,
+            yAxisID: 'y',
+            borderColor: 'rgba(76, 175, 80, 1)',
+            backgroundColor: 'rgba(76, 175, 80, 0.2)',
+            borderWidth: 2,
+            tension: 0.2,
+            pointRadius: 4,
+            pointBackgroundColor: 'rgba(76, 175, 80, 1)',
+          },
+          {
+            type: 'line',
+            label: '営業利益率（％）',
+            data: opMargin,
+            yAxisID: 'y1',
+            borderColor: 'rgba(255, 167, 38, 1)',
+            backgroundColor: 'rgba(255, 167, 38, 0.2)',
+            borderWidth: 2,
+            tension: 0.2,
+            pointRadius: 4,
+            pointBackgroundColor: 'rgba(255, 167, 38, 1)',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.dataset.label || '';
+                const value = context.parsed.y;
+                if (context.datasetIndex === 2) {
+                  // 営業利益率
+                  return `${label}: ${value.toFixed(1)}%`;
+                } else {
+                  return `${label}: ${value.toFixed(1)} 億円`;
+                }
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            position: 'left',
+            title: {
+              display: true,
+              text: '売上高・営業利益（億円）'
+            },
+            beginAtZero: true
+          },
+          y1: {
+            position: 'right',
+            title: {
+              display: true,
+              text: '営業利益率（％）'
+            },
+            beginAtZero: true,
+            grid: {
+              drawOnChartArea: false
+            },
+            ticks: {
+              callback: (value) => value + '%'
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
