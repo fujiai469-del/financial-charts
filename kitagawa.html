@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>北川精機 業績チャート</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 10px;
+    }
+    h2 {
+      margin-top: 32px;
+      margin-bottom: 8px;
+    }
+    canvas {
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>北川精機 業績推移（概算）</h1>
+
+  <h2>売上高（百万円）</h2>
+  <canvas id="salesChart"></canvas>
+
+  <h2>営業利益（百万円）</h2>
+  <canvas id="opIncomeChart"></canvas>
+
+  <h2>営業利益率（％）</h2>
+  <canvas id="opMarginChart"></canvas>
+
+  <script>
+    const labels = ["2022.6", "2023.6", "2024.6", "2025.6", "2026.6(予)"];
+
+    // データ（概算）
+    const sales = [5032, 6462, 5933, 6227, 6600];
+    const opIncome = [512, 735, 815, 623, 660];
+
+    // 売上と営業利益から営業利益率を自動計算（小数1桁）
+    const opMargin = sales.map((s, i) => Number((opIncome[i] / s * 100).toFixed(1)));
+
+    // 共通オプション
+    const commonOptions = {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              return context.parsed.y + " 百万円";
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { maxRotation: 0, minRotation: 0 }
+        },
+        y: {
+          beginAtZero: true
+        }
+      }
+    };
+
+    // 売上高チャート
+    new Chart(
+      document.getElementById("salesChart"),
+      {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "売上高（百万円）",
+            data: sales,
+            borderColor: "rgba(25, 118, 210, 1)",
+            backgroundColor: "rgba(25, 118, 210, 0.15)",
+            borderWidth: 2,
+            tension: 0.2,
+            pointRadius: 4
+          }]
+        },
+        options: commonOptions
+      }
+    );
+
+    // 営業利益チャート
+    new Chart(
+      document.getElementById("opIncomeChart"),
+      {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "営業利益（百万円）",
+            data: opIncome,
+            borderColor: "rgba(46, 125, 50, 1)",
+            backgroundColor: "rgba(46, 125, 50, 0.15)",
+            borderWidth: 2,
+            tension: 0.2,
+            pointRadius: 4
+          }]
+        },
+        options: commonOptions
+      }
+    );
+
+    // 営業利益率チャート用オプション
+    const marginOptions = JSON.parse(JSON.stringify(commonOptions));
+    marginOptions.plugins.tooltip.callbacks.label = function (context) {
+      return context.parsed.y + " %";
+    };
+    marginOptions.scales.y.ticks = {
+      callback: function (value) { return value + " %"; }
+    };
+
+    // 営業利益率チャート
+    new Chart(
+      document.getElementById("opMarginChart"),
+      {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "営業利益率（％）",
+            data: opMargin,
+            borderColor: "rgba(255, 143, 0, 1)",
+            backgroundColor: "rgba(255, 143, 0, 0.15)",
+            borderWidth: 2,
+            tension: 0.2,
+            pointRadius: 4
+          }]
+        },
+        options: marginOptions
+      }
+    );
+  </script>
+</body>
+</html>
