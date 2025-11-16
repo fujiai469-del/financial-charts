@@ -1,0 +1,390 @@
+import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
+import { Upload, TrendingUp, DollarSign, Percent, ArrowLeft } from 'lucide-react';
+
+const FinancialChartGenerator = () => {
+  const [companyName, setCompanyName] = useState('');
+  const [years, setYears] = useState(['', '', '', '', '']);
+  const [sales, setSales] = useState(['', '', '', '', '']);
+  const [opProfit, setOpProfit] = useState(['', '', '', '', '']);
+  const [chartData, setChartData] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    if (showResults) {
+      generateChartData();
+    }
+  }, [showResults]);
+
+  const generateChartData = () => {
+    const data = years.map((year, i) => {
+      const salesVal = parseFloat(sales[i]) || 0;
+      const profitVal = parseFloat(opProfit[i]) || 0;
+      const opm = salesVal > 0 ? ((profitVal / salesVal) * 100).toFixed(1) : 0;
+      
+      return {
+        year: year || `年度${i + 1}`,
+        sales: salesVal,
+        opProfit: profitVal,
+        opm: parseFloat(opm)
+      };
+    });
+    
+    setChartData(data);
+    calculateMetrics(data);
+  };
+
+  const calculateMetrics = (data) => {
+    const validData = data.filter(d => d.sales > 0 && d.opProfit > 0);
+    if (validData.length < 2) return;
+
+    const latest = validData[validData.length - 1];
+    const previous = validData[validData.length - 2];
+    
+    const salesChange = ((latest.sales - previous.sales) / previous.sales * 100).toFixed(1);
+    const profitChange = ((latest.opProfit - previous.opProfit) / previous.opProfit * 100).toFixed(1);
+    const avgOpm = (validData.reduce((sum, d) => sum + d.opm, 0) / validData.length).toFixed(1);
+
+    setMetrics({
+      latestSales: latest.sales,
+      latestProfit: latest.opProfit,
+      latestOpm: latest.opm,
+      salesChange,
+      profitChange,
+      avgOpm,
+      latestYear: latest.year
+    });
+  };
+
+  const handleYearChange = (index, value) => {
+    const newYears = [...years];
+    newYears[index] = value;
+    setYears(newYears);
+  };
+
+  const handleSalesChange = (index, value) => {
+    const newSales = [...sales];
+    newSales[index] = value;
+    setSales(newSales);
+  };
+
+  const handleOpProfitChange = (index, value) => {
+    const newOpProfit = [...opProfit];
+    newOpProfit[index] = value;
+    setOpProfit(newOpProfit);
+  };
+
+  const loadSampleData = () => {
+    setCompanyName('安川電機');
+    setYears(['2022/2', '2023/2', '2024/2', '2025/2', '2026/2(予)']);
+    setSales(['4791', '5559', '5757', '5377', '5250']);
+    setOpProfit(['529', '683', '662', '502', '480']);
+  };
+
+  const clearData = () => {
+    setCompanyName('');
+    setYears(['', '', '', '', '']);
+    setSales(['', '', '', '', '']);
+    setOpProfit(['', '', '', '', '']);
+    setMetrics(null);
+    setShowResults(false);
+  };
+
+  const handleComplete = () => {
+    if (!companyName || !years.some(y => y) || !sales.some(s => s) || !opProfit.some(o => o)) {
+      alert('企業名と最低1期分のデータを入力してください');
+      return;
+    }
+    setShowResults(true);
+  };
+
+  const handleBackToEdit = () => {
+    setShowResults(false);
+  };
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-gray-900 text-white p-3 rounded-lg shadow-lg border border-gray-700">
+          <p className="font-bold mb-2">{payload[0].payload.year}</p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ color: entry.color }} className="text-sm">
+              {entry.name}: {entry.value}
+              {entry.dataKey === 'opm' ? '%' : '億円'}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // 営業利益を売上の約30-40%の高さに調整
+  const maxProfit = Math.max(...opProfit.filter(p => p).map(p => parseFloat(p)));
+  const maxSales = Math.max(...sales.filter(s => s).map(s => parseFloat(s)));
+  const profitToSalesRatio = maxSales / maxProfit;
+  
+  // 営業利益を適度なスケールに変換（売上の35%程度の高さ）
+  const adjustedChartData = chartData.map(d => ({
+    ...d,
+    opProfitAdjusted: d.opProfit * (profitToSalesRatio * 0.35)
+  }));
+
+  if (!showResults) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4">
+        <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl p-6">
+          <div className="text-center mb-6 pb-4 border-b-4 border-purple-600">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              企業決算データ可視化ツール
+            </h1>
+            <p className="text-gray-600 text-sm">
+              企業の決算情報を入力して、美しいグラフで可視化
+            </p>
+          </div>
+
+          <div className="bg-gray-50 p-5 rounded-2xl shadow-inner">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Upload size={20} className="text-purple-600" />
+                データ入力
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={loadSampleData}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                >
+                  サンプル読込
+                </button>
+                <button
+                  onClick={clearData}
+                  className="px-3 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-colors text-sm font-medium"
+                >
+                  クリア
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-bold text-gray-700 mb-2">企業名 *</label>
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="例: 安川電機"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-600 focus:outline-none"
+              />
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white">
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase rounded-tl-lg">決算期</th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold uppercase">売上収益（億円）</th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold uppercase rounded-tr-lg">営業利益（億円）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[0, 1, 2, 3, 4].map((index) => (
+                    <tr key={index} className="border-b border-gray-200 hover:bg-gray-100 transition-colors">
+                      <td className="px-3 py-2">
+                        <input
+                          type="text"
+                          value={years[index]}
+                          onChange={(e) => handleYearChange(index, e.target.value)}
+                          placeholder={`202${index + 2}/2`}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:border-purple-600 focus:outline-none"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          value={sales[index]}
+                          onChange={(e) => handleSalesChange(index, e.target.value)}
+                          placeholder="0"
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:border-purple-600 focus:outline-none text-right"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          value={opProfit[index]}
+                          onChange={(e) => handleOpProfitChange(index, e.target.value)}
+                          placeholder="0"
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:border-purple-600 focus:outline-none text-right"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-5 text-center">
+              <p className="text-xs text-gray-500 bg-yellow-50 p-2 rounded-lg mb-4">
+                💡 ヒント: 決算短信から数値をコピー＆ペースト可能。予想値には「(予)」を付けてください。
+              </p>
+              <button
+                onClick={handleComplete}
+                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-xl hover:shadow-lg transition-all text-base font-bold"
+              >
+                完了 - グラフを表示
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4">
+      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl p-6">
+        <div className="text-center mb-6 pb-4 border-b-4 border-purple-600">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            {companyName}：財務パフォーマンス分析
+          </h1>
+          <p className="text-gray-600 text-sm">
+            売上収益・営業利益・営業利益率の推移
+          </p>
+        </div>
+
+        <div className="mb-4 text-center">
+          <button
+            onClick={handleBackToEdit}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+          >
+            <ArrowLeft size={16} />
+            データを編集
+          </button>
+        </div>
+
+        {metrics && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-purple-600 to-purple-700 text-white p-4 rounded-xl shadow-lg">
+              <div className="flex items-center gap-2 mb-2 opacity-90">
+                <DollarSign size={16} />
+                <span className="text-xs font-medium">最新売上収益（{metrics.latestYear}）</span>
+              </div>
+              <div className="text-2xl font-bold mb-1">{metrics.latestSales.toLocaleString()}億円</div>
+              <div className="text-xs opacity-85">
+                前年比 {metrics.salesChange > 0 ? '+' : ''}{metrics.salesChange}%
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 text-white p-4 rounded-xl shadow-lg">
+              <div className="flex items-center gap-2 mb-2 opacity-90">
+                <TrendingUp size={16} />
+                <span className="text-xs font-medium">最新営業利益（{metrics.latestYear}）</span>
+              </div>
+              <div className="text-2xl font-bold mb-1">{metrics.latestProfit.toLocaleString()}億円</div>
+              <div className="text-xs opacity-85">
+                前年比 {metrics.profitChange > 0 ? '+' : ''}{metrics.profitChange}%
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-600 to-indigo-700 text-white p-4 rounded-xl shadow-lg">
+              <div className="flex items-center gap-2 mb-2 opacity-90">
+                <Percent size={16} />
+                <span className="text-xs font-medium">最新営業利益率（{metrics.latestYear}）</span>
+              </div>
+              <div className="text-2xl font-bold mb-1">{metrics.latestOpm}%</div>
+              <div className="text-xs opacity-85">
+                平均: {metrics.avgOpm}%
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
+          <div className="flex justify-between items-center mb-3 px-4 text-xs font-bold">
+            <span className="text-purple-600">← 金額（億円）</span>
+            <span className="text-yellow-600">営業利益率（％）→</span>
+          </div>
+          <ResponsiveContainer width="100%" height={350}>
+            <ComposedChart data={adjustedChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="year" 
+                tick={{ fontSize: 11, fontWeight: 600, fill: '#2c3e50' }}
+              />
+              <YAxis 
+                yAxisId="left"
+                tick={{ fontSize: 11, fill: '#7f8c8d' }}
+                domain={[0, maxSales * 1.15]}
+                tickFormatter={(value) => Math.round(value).toLocaleString()}
+              />
+              <YAxis 
+                yAxisId="right" 
+                orientation="right"
+                tick={{ fontSize: 11, fill: '#7f8c8d' }}
+                domain={[0, 'auto']}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                wrapperStyle={{ fontSize: '12px', fontWeight: 600 }}
+                iconType="circle"
+              />
+              <Bar 
+                yAxisId="left"
+                dataKey="sales" 
+                name="売上収益" 
+                fill="rgba(102, 126, 234, 0.7)" 
+                stroke="rgba(102, 126, 234, 1)"
+                strokeWidth={2}
+              />
+              <Bar 
+                yAxisId="left"
+                dataKey="opProfitAdjusted" 
+                name="営業利益" 
+                fill="rgba(118, 75, 162, 0.7)"
+                stroke="rgba(118, 75, 162, 1)"
+                strokeWidth={2}
+              />
+              <Line 
+                yAxisId="right"
+                type="monotone" 
+                dataKey="opm" 
+                name="営業利益率" 
+                stroke="rgba(255, 193, 7, 1)"
+                strokeWidth={3}
+                dot={{ fill: 'rgba(255, 193, 7, 1)', r: 5, strokeWidth: 2, stroke: '#fff' }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl shadow-lg">
+          <table className="w-full bg-white text-sm">
+            <thead>
+              <tr className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase rounded-tl-xl">決算期</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">売上収益（億円）</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">営業利益（億円）</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase rounded-tr-xl">営業利益率（%）</th>
+              </tr>
+            </thead>
+            <tbody>
+              {chartData.map((row, index) => (
+                <tr key={index} className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${row.year.includes('予') ? 'bg-yellow-50' : ''}`}>
+                  <td className="px-4 py-3 font-semibold text-gray-800">{row.year}</td>
+                  <td className="px-4 py-3 text-right">{row.sales > 0 ? row.sales.toLocaleString() : '-'}</td>
+                  <td className="px-4 py-3 text-right">{row.opProfit > 0 ? row.opProfit.toLocaleString() : '-'}</td>
+                  <td className="px-4 py-3 text-right">{row.opm > 0 ? row.opm : '-'}{row.opm > 0 && '%'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-4 text-right text-xs text-gray-400 italic">
+          出所: {companyName}の決算短信・決算説明資料などの開示資料を基に作成
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FinancialChartGenerator;
