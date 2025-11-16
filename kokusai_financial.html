@@ -10,7 +10,6 @@
       max-width: 960px;
       margin: 0 auto;
       padding: 20px;
-      background: #f5f5f5;
     }
     .container {
       background: #ffffff;
@@ -83,18 +82,14 @@
     // 営業利益率（％）を計算（数値のまま保持）
     const opMargin = sales.map((s, i) => opProfit[i] / s * 100);
 
-    // 数値フォーマッタ（3桁カンマ & 小数1桁）
-    const formatNumber = (v) =>
-      v.toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-
     // テーブル生成
     const tbody = document.getElementById('dataTableBody');
     years.forEach((y, i) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${y}</td>
-        <td>${formatNumber(sales[i])}</td>
-        <td>${formatNumber(opProfit[i])}</td>
+        <td>${sales[i].toFixed(1)}</td>
+        <td>${opProfit[i].toFixed(1)}</td>
         <td>${opMargin[i].toFixed(1)}%</td>
       `;
       tbody.appendChild(tr);
@@ -112,34 +107,25 @@
             type: 'bar',
             label: '売上高（億円）',
             data: sales,
-            yAxisID: 'y',
-            backgroundColor: 'rgba(25, 118, 210, 0.4)',
-            borderColor: 'rgba(25, 118, 210, 1)',
-            borderWidth: 1,
+            yAxisID: 'y'
           },
           {
             type: 'line',
             label: '営業利益（億円）',
             data: opProfit,
             yAxisID: 'y',
-            borderColor: 'rgba(76, 175, 80, 1)',
-            backgroundColor: 'rgba(76, 175, 80, 0.2)',
             borderWidth: 2,
             tension: 0.2,
-            pointRadius: 4,
-            pointBackgroundColor: 'rgba(76, 175, 80, 1)',
+            pointRadius: 4
           },
           {
             type: 'line',
             label: '営業利益率（％）',
             data: opMargin,
             yAxisID: 'y1',
-            borderColor: 'rgba(255, 167, 38, 1)',
-            backgroundColor: 'rgba(255, 167, 38, 0.2)',
             borderWidth: 2,
             tension: 0.2,
-            pointRadius: 4,
-            pointBackgroundColor: 'rgba(255, 167, 38, 1)',
+            pointRadius: 4
           }
         ]
       },
@@ -158,12 +144,11 @@
             callbacks: {
               label: function(context) {
                 const label = context.dataset.label || '';
-                const value = context.parsed.y;
                 if (context.datasetIndex === 2) {
                   // 営業利益率
-                  return `${label}: ${value.toFixed(1)}%`;
+                  return `${label}: ${context.parsed.y.toFixed(1)}%`;
                 } else {
-                  return `${label}: ${value.toFixed(1)} 億円`;
+                  return `${label}: ${context.parsed.y.toFixed(1)} 億円`;
                 }
               }
             }
@@ -184,17 +169,3 @@
               display: true,
               text: '営業利益率（％）'
             },
-            beginAtZero: true,
-            grid: {
-              drawOnChartArea: false
-            },
-            ticks: {
-              callback: (value) => value + '%'
-            }
-          }
-        }
-      }
-    });
-  </script>
-</body>
-</html>
